@@ -1,0 +1,131 @@
+$mobile-xs: 320px;   
+$mobile-sm: 375px;  
+$tablet-md: 768px;  
+$desktop-lg: 1024px; 
+$desktop-xl: 1280px;
+
+@mixin mobile-xs {
+  @media screen and (max-width: $mobile-xs) {
+    @content;
+  }
+}
+@mixin mobile-sm {
+  @media screen and (max-width: $mobile-sm) {
+    @content;
+  }
+}
+@mixin tablet-md {
+  @media screen and (max-width: $tablet-md) {
+    @content;
+  }
+}
+@mixin desktop-lg {
+  @media screen and (max-width: $desktop-lg) {
+    @content;
+  }
+}
+@mixin desktop-xl {
+  @media screen and (max-width: $desktop-xl) {
+    @content;
+  }
+}
+
+
+// 한 줄 텍스트 슬라이드 호버 효과
+// 구조: <a data-text="TEXT"><span>TEXT</span></a>
+@mixin hover-slide-text(
+  $font-size: 14px,
+  $line-height: 14px,
+  $duration: 0.5s,
+  $color: #fff
+) {
+  position: relative;
+  display: inline-block;
+  height: $line-height;
+  overflow: hidden;
+
+  span {
+    display: block;
+    font-size: $font-size;
+    line-height: $line-height;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: $color;
+    transition: transform $duration cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  // 두 번째 줄: data-text를 사용한 가짜 텍스트
+  &::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 100%; 
+    white-space: nowrap;
+    font-size: $font-size;
+    line-height: $line-height;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: $color;
+    transition: transform $duration cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  // hover 시 둘 다 위로 슬라이드
+  &:hover span,
+  &:hover::after {
+    transform: translateY(-100%);
+  }
+}
+
+// 스크롤 진행도에 따라 문장들이 한 줄씩 위에서 슬라이드 인되는 효과
+// 사용 예시: .section-about { @include scroll-step-lines(4); }
+@mixin scroll-step-lines(
+  $line-count,
+  $distance: 24px,
+  $duration: 0.6s
+) {
+  .introLine {
+    opacity: 0;
+    transform: translateY($distance);
+    transition: opacity $duration ease, transform $duration ease;
+  }
+
+  // step-1: 1번째 줄만 보이기
+  @for $i from 1 through $line-count {
+    &.step-#{$i} {
+      .introLine:nth-child(-n + #{$i}) {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// 밑줄 애니메이션 믹스인
+// 사용 예시: @include underline-hover(#fff, 2px, 0.3s);
+@mixin underline-hover($color: #fff, $height: 2px, $duration: 0.3s) {
+  position: relative;
+  display: inline-block;
+  align-self: flex-start;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: $height;
+    background-color: $color;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform $duration ease;
+  }
+
+  &:hover {
+    &::after {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+  }
+}
+
+
