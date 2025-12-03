@@ -164,6 +164,9 @@ html, body {
             background-position: center;
             @include mobile-sm {
                 background: url(/images/key_visual_mo.webp) no-repeat 0 0;
+                background-size: cover;
+                background-attachment: fixed;
+                background-position: center;
             }
             .hashKeyword {
                 position: absolute;
