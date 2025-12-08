@@ -73,7 +73,7 @@ html, body {
         }
     }
     .fullMenu {
-        display: flex;
+        display: none;
         flex-direction: column;
         justify-content: space-between;
         padding: 15px 15px 20px;
@@ -92,6 +92,7 @@ html, body {
 
         transition: transform 0.5s ease, opacity 0.5s ease;
         &.show {
+            display: flex;
             transform: scaleY(1) translateY(0);
             opacity: 1;
             pointer-events: auto;
@@ -165,7 +166,7 @@ html, body {
             @include mobile-sm {
                 background: url(/images/key_visual_mo.png) no-repeat 0 0;
                 background-size: cover;
-                background-attachment: fixed;
+                background-attachment:initial;
                 background-position: center;
             }
             .hashKeyword {

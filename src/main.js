@@ -82,8 +82,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const href = event.currentTarget.getAttribute("href");
     if (!href || !href.startsWith("#")) return;
 
-    const rawId = href.slice(1); // "ABOUT"
-    const targetId = rawId.toLowerCase(); // "about"
+    const rawId = href.slice(1);        // "ABOUT" / "PROJECTS" / "CONTACT"
+    const targetId = rawId.toLowerCase(); // "about" / "projects" / "contact"
     const targetSection = document.getElementById(targetId);
     if (!targetSection) return;
 
@@ -92,9 +92,13 @@ document.addEventListener("DOMContentLoaded", () => {
       targetSection.getBoundingClientRect().top -
       headerHeight;
 
+    // CONTACT 이동인지 체크
+    const isContact = targetId === "contact";
+
     window.scrollTo({
       top: targetTop,
-      behavior: "smooth",
+      // CONTACT는 한 번에 점프해서 Projects 가로 슬라이드 구간을 “보이지 않게” 통과
+      behavior: isContact ? "auto" : "smooth",
     });
 
     // 모바일 풀메뉴 닫기
@@ -153,6 +157,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // fixed로 붙어 있을 스크롤 구간
       const start = sectionTop;                          // Projects 섹션 시작
       const end = sectionTop + sectionHeight - viewportHeight; // 섹션 끝에서 한 화면 남긴 위치
+      
+      const speedFactor = 1.5; // 숫자 클수록 천천히 (스크롤 구간 1.5배처럼 사용)
+      const scrollRange = (end - start) * speedFactor;
 
       // 1) 섹션 위쪽: 아직 진입 전
       if (scrollY < start) {
@@ -173,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
       projectsInner.classList.add("is-fixed");
       projectsInner.classList.remove("is-bottom");
 
-      const progress = (scrollY - start) / (end - start); // 0 ~ 1
+      const progress = (scrollY - start) / scrollRange; // 0 ~ 1
       const translateX = -maxTranslateX * progress;
       projectsInner.style.transform = `translateX(${translateX}px)`;
     };
