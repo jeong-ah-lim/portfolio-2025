@@ -1,14 +1,13 @@
 import "../scss/style.scss";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const section = document.querySelector("#about");
+  // ==============================
+  // 0) 풀메뉴 열기 / 닫기
+  // ==============================
   const btnMenu = document.querySelector(".btnMenu");
   const closeMenu = document.querySelector(".closeMenu");
   const fullMenu = document.querySelector(".fullMenu");
 
-  // ==============================
-  // 0. 풀메뉴 열기 / 닫기
-  // ==============================
   const openMenu = () => {
     if (!fullMenu) return;
     fullMenu.classList.add("show");
@@ -21,60 +20,78 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("menuOpen");
   };
 
-  if (btnMenu && fullMenu) {
-    btnMenu.addEventListener("click", openMenu);
-  }
-
-  if (closeMenu && fullMenu) {
-    closeMenu.addEventListener("click", hideMenu);
-  }
+  if (btnMenu) btnMenu.addEventListener("click", openMenu);
+  if (closeMenu) closeMenu.addEventListener("click", hideMenu);
 
   // ==============================
-  // 1. ABOUT 섹션 스크롤 스텝 애니메이션
+  // 1) ABOUT 스텝 애니메이션 (IntersectionObserver로 개선)
+  //    - .introLine이 화면에 들어오면 step-n 누적
   // ==============================
-  if (section) {
-    const lines = section.querySelectorAll(".introLine");
-    const total = lines.length;
+  const aboutSection = document.querySelector("#about");
+
+  if (aboutSection) {
+    const lines = [...aboutSection.querySelectorAll(".introLine")];
     let maxStep = 0;
 
-    const onScrollAbout = () => {
-      const rect = section.getBoundingClientRect();
-      const vh = window.innerHeight;
+    // 라인마다 step 번호 부여
+    lines.forEach((line, idx) => {
+      line.dataset.step = String(idx + 1);
+    });
 
-      const sectionHeight = rect.height || section.offsetHeight;
-      const viewCenter = vh / 2;
-      const distanceFromTop = viewCenter - rect.top;
+    const aboutIO = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
 
-      let progress = distanceFromTop / sectionHeight;
-      if (progress < 0) progress = 0;
-      if (progress > 1) progress = 1;
+          const step = Number(entry.target.dataset.step || "0");
+          if (step > maxStep) {
+            for (let i = maxStep + 1; i <= step; i++) {
+              aboutSection.classList.add(`step-${i}`);
+            }
+            maxStep = step;
+          }
 
-      const step = Math.ceil(progress * total);
-
-      if (step > maxStep) {
-        for (let i = maxStep + 1; i <= step; i++) {
-          section.classList.add(`step-${i}`);
-        }
-        maxStep = step;
-
-        if (maxStep >= total) {
-          window.removeEventListener("scroll", onScrollAbout);
-        }
+          // 한 번 실행하면 해당 라인은 관찰 해제
+          aboutIO.unobserve(entry.target);
+        });
+      },
+      {
+        root: null,
+        threshold: 0.5,
+        rootMargin: "0px 0px -20% 0px",
       }
-    };
+    );
 
-    window.addEventListener("scroll", onScrollAbout);
-    onScrollAbout();
+    lines.forEach((line) => aboutIO.observe(line));
   }
 
   // ==============================
-  // 2. 메뉴 클릭 시 해당 섹션으로 스무스 스크롤
-  //    - #ABOUT, #SKILLSET 처럼 대문자 → id는 소문자이므로 JS에서 맞춰줌
+  // 2) 메뉴 클릭 시 해당 섹션으로 이동
+  //    - #ABOUT 같은 대문자 링크 → id는 소문자라고 가정하고 toLowerCase()
+  //    - CONTACT는 Projects 가로 슬라이드 구간을 "안 보이게" auto 점프
   // ==============================
   const fullMenuLogo = document.querySelector(".fullMenu .logo");
   const navLinks = document.querySelectorAll('.navWrap a[href^="#"]');
   const header = document.querySelector("header");
-  const headerHeight = header ? header.offsetHeight : 0;
+
+  const getHeaderHeight = () => (header ? header.offsetHeight : 0);
+
+  const scrollToSection = (targetId, behavior = "smooth") => {
+    const targetSection = document.getElementById(targetId);
+    if (!targetSection) return;
+
+    const headerHeight = getHeaderHeight();
+    const baseTop = window.pageYOffset + targetSection.getBoundingClientRect().top;
+
+    // 기본은 헤더에 안 가리게 위로 당김(-)
+    // contact는 더 아래로 보내고 싶으면 (+)로
+    const offset = targetId === "contact" ? headerHeight : -headerHeight;
+
+    window.scrollTo({
+      top: baseTop + offset,
+      behavior,
+    });
+  };
 
   const handleNavClick = (event) => {
     event.preventDefault();
@@ -82,93 +99,66 @@ document.addEventListener("DOMContentLoaded", () => {
     const href = event.currentTarget.getAttribute("href");
     if (!href || !href.startsWith("#")) return;
 
-    const rawId = href.slice(1);        // "ABOUT" / "PROJECTS" / "CONTACT"
+    const rawId = href.slice(1); // "ABOUT" / "PROJECTS" / "CONTACT"
     const targetId = rawId.toLowerCase(); // "about" / "projects" / "contact"
-    const targetSection = document.getElementById(targetId);
-    if (!targetSection) return;
-
-    const targetTop =
-      window.pageYOffset +
-      targetSection.getBoundingClientRect().top -
-      headerHeight;
-
-    // CONTACT 이동인지 체크
     const isContact = targetId === "contact";
 
-    window.scrollTo({
-      top: targetTop,
-      // CONTACT는 한 번에 점프해서 Projects 가로 슬라이드 구간을 “보이지 않게” 통과
-      behavior: isContact ? "auto" : "smooth",
-    });
-
-    // 모바일 풀메뉴 닫기
+    scrollToSection(targetId, isContact ? "auto" : "smooth");
     hideMenu();
   };
 
-  navLinks.forEach((link) => {
-    link.addEventListener("click", handleNavClick);
-  });
+  navLinks.forEach((link) => link.addEventListener("click", handleNavClick));
 
   if (fullMenuLogo) {
     fullMenuLogo.addEventListener("click", () => {
-      const targetSection = document.getElementById("home");
-      if (!targetSection) return;
-
-      const targetTop =
-        window.pageYOffset +
-        targetSection.getBoundingClientRect().top -
-        headerHeight;
-
-      window.scrollTo({
-        top: targetTop,
-        behavior: "smooth",
-      });
-
-      // 풀메뉴 닫기
+      scrollToSection("home", "smooth");
       hideMenu();
     });
   }
 
-
   // ==============================
-  // 3. Projects 섹션: 세로 스크롤 → 가로 슬라이드 (fixed로 고정)
+  // 3) Projects: 세로 스크롤 → 가로 슬라이드
+  //    - IntersectionObserver로 "근처에서만" scroll 핸들러 활성화
+  //    - requestAnimationFrame으로 transform 업데이트 최적화
   // ==============================
   const projectsSection = document.querySelector("#projects");
-  const projectsInner = projectsSection?.querySelector(".porjectsInner");
+  const projectsInner =
+    projectsSection?.querySelector(".projectsInner")
 
   if (projectsSection && projectsInner) {
     let maxTranslateX = 0;
+    let latestScrollY = 0;
+    let ticking = false;
+    let active = false;
 
-    // 가로로 얼마나 움직일 수 있는지 계산
     const calcMaxTranslateX = () => {
-      const totalWidth = projectsInner.scrollWidth;   // li 전체 가로 길이
+      const totalWidth = projectsInner.scrollWidth; // 내부 전체 가로 길이
       const viewportWidth = window.innerWidth;
       maxTranslateX = Math.max(0, totalWidth - viewportWidth);
     };
 
-    calcMaxTranslateX();
+    const applyProjectsTransform = () => {
+      ticking = false;
 
-    const onScrollProjects = () => {
-      const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollY = latestScrollY;
       const sectionTop = projectsSection.offsetTop;
       const sectionHeight = projectsSection.offsetHeight;
       const viewportHeight = window.innerHeight;
 
-      // fixed로 붙어 있을 스크롤 구간
-      const start = sectionTop;                          // Projects 섹션 시작
-      const end = sectionTop + sectionHeight - viewportHeight; // 섹션 끝에서 한 화면 남긴 위치
-      
-      const speedFactor = 1.5; // 숫자 클수록 천천히 (스크롤 구간 1.5배처럼 사용)
+      const start = sectionTop;
+      const end = sectionTop + sectionHeight - viewportHeight;
+
+      const speedFactor = 1.5; // 숫자 클수록 천천히
       const scrollRange = (end - start) * speedFactor;
 
-      // 1) 섹션 위쪽: 아직 진입 전
+      // 섹션 진입 전
       if (scrollY < start) {
         projectsInner.classList.remove("is-fixed", "is-bottom");
         projectsInner.style.transform = "translateX(0)";
         return;
       }
 
-      // 2) 섹션을 완전히 지난 뒤
+      // 섹션 지난 후
       if (scrollY > end) {
         projectsInner.classList.remove("is-fixed");
         projectsInner.classList.add("is-bottom");
@@ -176,21 +166,62 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 3) 섹션 안에 있는 동안: 화면에 고정 + 가로로 슬라이드
+      // 섹션 내부
       projectsInner.classList.add("is-fixed");
       projectsInner.classList.remove("is-bottom");
 
-      const progress = (scrollY - start) / scrollRange; // 0 ~ 1
+      // progress 안정화 (0~1)
+      let progress = (scrollY - start) / scrollRange;
+      if (progress < 0) progress = 0;
+      if (progress > 1) progress = 1;
+
       const translateX = -maxTranslateX * progress;
       projectsInner.style.transform = `translateX(${translateX}px)`;
     };
 
-    window.addEventListener("resize", () => {
+    const requestTick = () => {
+      if (!ticking) {
+        ticking = true;
+        window.requestAnimationFrame(applyProjectsTransform);
+      }
+    };
+
+    const onScrollProjects = () => {
+      latestScrollY = window.pageYOffset || document.documentElement.scrollTop;
+      requestTick();
+    };
+
+    const onResizeProjects = () => {
       calcMaxTranslateX();
       onScrollProjects();
-    });
+    };
 
-    window.addEventListener("scroll", onScrollProjects);
-    onScrollProjects();
+    // 최초 계산
+    calcMaxTranslateX();
+
+    // Projects 섹션 근처에서만 활성화
+    const projectsIO = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !active) {
+          active = true;
+          window.addEventListener("scroll", onScrollProjects, { passive: true });
+          window.addEventListener("resize", onResizeProjects);
+          onScrollProjects(); // 즉시 반영
+        }
+
+        if (!entry.isIntersecting && active) {
+          active = false;
+          window.removeEventListener("scroll", onScrollProjects);
+          window.removeEventListener("resize", onResizeProjects);
+        }
+      },
+      {
+        root: null,
+        threshold: 0,
+        rootMargin: "200px 0px 200px 0px", // 근처 오면 미리 켜기
+      }
+    );
+
+    projectsIO.observe(projectsSection);
   }
 });

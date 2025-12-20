@@ -312,12 +312,12 @@ html, body {
             padding: 0;
             min-height: 300vh;
             overflow: hidden;
-            .porjectsInner {
+            .projectsInner {
                 display: flex;
                 gap: 20px;
                 overflow: visible;
                 will-change: transform; 
-                transition: transform 0.5s linear;
+                transition: all 0.5s linear;
                 &.is-fixed {
                     position: fixed;
                     top: 82px;
